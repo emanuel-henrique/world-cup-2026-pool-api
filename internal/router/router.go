@@ -6,6 +6,7 @@ import (
 	"bolao-copa/internal/groups"
 	"bolao-copa/internal/matches"
 	"bolao-copa/internal/players"
+	"bolao-copa/internal/predictions"
 
 	// "bolao-copa/internal/groups"
 	// "bolao-copa/internal/players"
@@ -21,6 +22,7 @@ func New(
     playerHandler *players.Handler,
     groupHandler  *groups.Handler,
     bracketHandler *bracket.Handler,
+    predHandler    *predictions.Handler,
 ) *gin.Engine {
     r := gin.Default()
 
@@ -38,16 +40,15 @@ func New(
     r.GET("/groups",        groupHandler.List)
     r.GET("/groups/:name",  groupHandler.GetByName)
     r.GET("/bracket", bracketHandler.Get)
-
-    // Protegidas
-    // protected := r.Group("/")
-    // protected.Use(auth.Middleware())
-    // {
-    //     protected.GET("/predictions",          predHandler.List)
-    //     protected.POST("/predictions",         predHandler.Upsert)
-    //     protected.GET("/predictions/special",  predHandler.GetSpecial)
-    //     protected.POST("/predictions/special", predHandler.UpsertSpecial)
-    // }
+    
+    protected := r.Group("/")
+    protected.Use(auth.Middleware())
+    {
+        protected.GET("/predictions",          predHandler.List)
+        protected.POST("/predictions",         predHandler.Upsert)
+        protected.GET("/predictions/special",  predHandler.GetSpecial)
+        protected.POST("/predictions/special", predHandler.UpsertSpecial)
+    }
 
     return r
 }

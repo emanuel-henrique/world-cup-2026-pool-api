@@ -12,6 +12,7 @@ import (
 	"bolao-copa/internal/groups"
 	"bolao-copa/internal/matches"
 	"bolao-copa/internal/players"
+	"bolao-copa/internal/predictions"
 	"bolao-copa/internal/router"
 )
 
@@ -46,7 +47,11 @@ func main() {
     bracketService := bracket.NewService(database)
     bracketHandler := bracket.NewHandler(bracketService)
 
-    r := router.New(authHandler, matchHandler, playerHandler, groupHandler, bracketHandler)
+    predRepo    := predictions.NewRepository(database)
+    predService := predictions.NewService(predRepo)
+    predHandler := predictions.NewHandler(predService)
+
+    r := router.New(authHandler, matchHandler, playerHandler, groupHandler, bracketHandler, predHandler)
 
     r.Run(":" + os.Getenv("PORT"))
 }
