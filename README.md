@@ -249,7 +249,7 @@ As principais tabelas:
 
 ## 📄 Documentação
 
-O documento completo de requisitos está em [`docs/SRD.md`](docs/SRD.md), cobrindo requisitos funcionais, não funcionais, regras de negócio, schema e critérios de aceite.
+O documento completo de requisitos está em [`docs/SRD.md`](doc.md), cobrindo requisitos funcionais, não funcionais, regras de negócio, schema e critérios de aceite.
 
 ---
 
