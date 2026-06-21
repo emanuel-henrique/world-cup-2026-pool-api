@@ -8,6 +8,7 @@ import (
 
 	"bolao-copa/internal/auth"
 	db "bolao-copa/internal/database"
+	"bolao-copa/internal/groups"
 	"bolao-copa/internal/matches"
 	"bolao-copa/internal/players"
 	"bolao-copa/internal/router"
@@ -38,7 +39,10 @@ func main() {
     playerRepo    := players.NewRepository(database)
     playerHandler := players.NewHandler(playerRepo)
 
-    r := router.New(authHandler, matchHandler, playerHandler)
+    groupService := groups.NewService(database)
+    groupHandler := groups.NewHandler(groupService)
+
+    r := router.New(authHandler, matchHandler, playerHandler, groupHandler)
 
     r.Run(":" + os.Getenv("PORT"))
 }
