@@ -7,11 +7,7 @@ import (
 	"bolao-copa/internal/matches"
 	"bolao-copa/internal/players"
 	"bolao-copa/internal/predictions"
-
-	// "bolao-copa/internal/groups"
-	// "bolao-copa/internal/players"
-	// "bolao-copa/internal/predictions"
-	// "bolao-copa/internal/ranking"
+	"bolao-copa/internal/ranking"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,6 +19,7 @@ func New(
     groupHandler  *groups.Handler,
     bracketHandler *bracket.Handler,
     predHandler    *predictions.Handler,
+    rankingHandler *ranking.Handler,
 ) *gin.Engine {
     r := gin.Default()
 
@@ -40,6 +37,7 @@ func New(
     r.GET("/groups",        groupHandler.List)
     r.GET("/groups/:name",  groupHandler.GetByName)
     r.GET("/bracket", bracketHandler.Get)
+    r.GET("/ranking", rankingHandler.List)
     
     protected := r.Group("/")
     protected.Use(auth.Middleware())
