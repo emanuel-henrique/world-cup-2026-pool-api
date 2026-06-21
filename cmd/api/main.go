@@ -7,6 +7,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"bolao-copa/internal/auth"
+	"bolao-copa/internal/bracket"
 	db "bolao-copa/internal/database"
 	"bolao-copa/internal/groups"
 	"bolao-copa/internal/matches"
@@ -42,7 +43,10 @@ func main() {
     groupService := groups.NewService(database)
     groupHandler := groups.NewHandler(groupService)
 
-    r := router.New(authHandler, matchHandler, playerHandler, groupHandler)
+    bracketService := bracket.NewService(database)
+    bracketHandler := bracket.NewHandler(bracketService)
+
+    r := router.New(authHandler, matchHandler, playerHandler, groupHandler, bracketHandler)
 
     r.Run(":" + os.Getenv("PORT"))
 }

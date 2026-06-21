@@ -2,11 +2,11 @@ package router
 
 import (
 	"bolao-copa/internal/auth"
+	bracket "bolao-copa/internal/bracket"
 	"bolao-copa/internal/groups"
 	"bolao-copa/internal/matches"
 	"bolao-copa/internal/players"
 
-	// "bolao-copa/internal/bracket"
 	// "bolao-copa/internal/groups"
 	// "bolao-copa/internal/players"
 	// "bolao-copa/internal/predictions"
@@ -20,6 +20,7 @@ func New(
     matchHandler  *matches.Handler,
     playerHandler *players.Handler,
     groupHandler  *groups.Handler,
+    bracketHandler *bracket.Handler,
 ) *gin.Engine {
     r := gin.Default()
 
@@ -36,6 +37,7 @@ func New(
     r.GET("/players",       playerHandler.List)
     r.GET("/groups",        groupHandler.List)
     r.GET("/groups/:name",  groupHandler.GetByName)
+    r.GET("/bracket", bracketHandler.Get)
 
     // Protegidas
     // protected := r.Group("/")
