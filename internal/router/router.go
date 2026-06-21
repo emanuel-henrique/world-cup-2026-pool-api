@@ -3,6 +3,7 @@ package router
 import (
 	"bolao-copa/internal/auth"
 	"bolao-copa/internal/matches"
+	"bolao-copa/internal/players"
 
 	// "bolao-copa/internal/bracket"
 	// "bolao-copa/internal/groups"
@@ -18,7 +19,7 @@ func New(
     matchHandler    *matches.Handler,
     // groupHandler    *groups.Handler,
     // bracketHandler  *bracket.Handler,
-    // playerHandler   *players.Handler,
+    playerHandler   *players.Handler,
     // predHandler     *predictions.Handler,
     // rankingHandler  *ranking.Handler,
 ) *gin.Engine {
@@ -37,7 +38,7 @@ func New(
     // r.GET("/groups",         groupHandler.List)
     // r.GET("/groups/:name",   groupHandler.GetByName)
     // r.GET("/bracket",        bracketHandler.Get)
-    // r.GET("/players",        playerHandler.List)
+    r.GET("/players",        playerHandler.List)
     // r.GET("/ranking",        rankingHandler.List)
 
     // // Protegidas — JWT obrigatório
