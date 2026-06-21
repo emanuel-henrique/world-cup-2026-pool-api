@@ -2,9 +2,10 @@ package router
 
 import (
 	"bolao-copa/internal/auth"
+	"bolao-copa/internal/matches"
+
 	// "bolao-copa/internal/bracket"
 	// "bolao-copa/internal/groups"
-	// "bolao-copa/internal/matches"
 	// "bolao-copa/internal/players"
 	// "bolao-copa/internal/predictions"
 	// "bolao-copa/internal/ranking"
@@ -14,7 +15,7 @@ import (
 
 func New(
     authHandler     *auth.Handler,
-    // matchHandler    *matches.Handler,
+    matchHandler    *matches.Handler,
     // groupHandler    *groups.Handler,
     // bracketHandler  *bracket.Handler,
     // playerHandler   *players.Handler,
@@ -31,8 +32,8 @@ func New(
     }
 
     // // Públicas
-    // r.GET("/matches",        matchHandler.List)
-    // r.GET("/matches/:id",    matchHandler.GetByID)
+    r.GET("/matches",        matchHandler.List)
+    r.GET("/matches/:id",    matchHandler.GetByID)
     // r.GET("/groups",         groupHandler.List)
     // r.GET("/groups/:name",   groupHandler.GetByName)
     // r.GET("/bracket",        bracketHandler.Get)
