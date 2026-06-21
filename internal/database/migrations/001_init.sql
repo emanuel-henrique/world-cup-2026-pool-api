@@ -106,4 +106,17 @@ WHERE m.stage = 'group'
   AND m.status = 'finished'
   AND m.group_name IS NOT NULL
 GROUP BY m.group_name, t.id, t.name, t.flag
-ORDER BY m.group_name, points DESC, (goals_for - goals_against) DESC, goals_for DESC;
+ORDER BY
+m.group_name,
+SUM(CASE
+  WHEN (m.home_team_id = t.id AND m.home_score > m.away_score)
+    OR (m.away_team_id = t.id AND m.away_score > m.home_score)
+  THEN 3
+  WHEN m.home_score = m.away_score THEN 1
+  ELSE 0
+END) DESC,
+  (
+    SUM(CASE WHEN m.home_team_id = t.id THEN m.home_score WHEN m.away_team_id = t.id THEN m.away_score ELSE 0 END) -
+    SUM(CASE WHEN m.home_team_id = t.id THEN m.away_score WHEN m.away_team_id = t.id THEN m.home_score ELSE 0 END)
+  ) DESC,
+SUM(CASE WHEN m.home_team_id = t.id THEN m.home_score WHEN m.away_team_id = t.id THEN m.away_score ELSE 0 END) DESC;

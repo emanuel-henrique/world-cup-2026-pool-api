@@ -1,9 +1,10 @@
-// cmd/api/main.go
 package main
 
 import (
 	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 
 	"bolao-copa/internal/auth"
 	db "bolao-copa/internal/database"
@@ -11,19 +12,24 @@ import (
 )
 
 func main() {
-    // 1. Banco
+    // Carrega o .env — ignora erro em produção (variáveis já vêm do ambiente)
+    if err := godotenv.Load(); err != nil {
+        log.Println("aviso: arquivo .env não encontrado, usando variáveis do ambiente")
+    }
+
+    // Banco
     database, err := db.Connect()
     if err != nil {
         log.Fatalf("falha ao conectar no banco: %v", err)
     }
     defer database.Close()
 
-    // 2. Auth — monta as dependências em cadeia
+    // Auth
     authRepo    := auth.NewRepository(database)
     authService := auth.NewService(authRepo)
     authHandler := auth.NewHandler(authService)
 
-    // 3. Router
+    // Router
     r := router.New(authHandler)
     r.Run(":" + os.Getenv("PORT"))
 }

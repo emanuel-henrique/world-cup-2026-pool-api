@@ -1,13 +1,18 @@
-package db
+// internal/database/db.go
+package database
 
 import (
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"os"
 	"time"
 
 	_ "github.com/lib/pq"
 )
+
+//go:embed migrations/001_init.sql
+var initSQL string
 
 func Connect() (*sql.DB, error) {
     dsn := os.Getenv("DATABASE_URL")
@@ -36,15 +41,9 @@ func Connect() (*sql.DB, error) {
 }
 
 func migrate(db *sql.DB) error {
-    sql, err := os.ReadFile("db/migrations/001_init.sql")
-    if err != nil {
-        return fmt.Errorf("erro ao ler migration: %w", err)
-    }
-
-    _, err = db.Exec(string(sql))
+    _, err := db.Exec(initSQL)
     if err != nil {
         return fmt.Errorf("erro ao executar migration: %w", err)
     }
-
     return nil
 }
