@@ -2,13 +2,13 @@
 package matches_test
 
 import (
+	"bolao-copa/internal/matches"
+	"bolao-copa/internal/pagination"
 	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"bolao-copa/internal/matches"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,11 +16,16 @@ import (
 // Mock do Service
 type mockService struct{}
 
-func (m *mockService) ListMatches(ctx context.Context, filters matches.MatchFilters) (matches.ListMatchesResponse, error) {
+func (m *mockService) ListMatches(ctx context.Context, filters matches.MatchFilters, page, limit int) (matches.ListMatchesResponse, error) {
 	score := 1
 	group := "C"
 	return matches.ListMatchesResponse{
-		Total: 1,
+		Meta: pagination.Meta{
+			Page:       1,
+			Limit:      50,
+			TotalItems: 1,
+			TotalPages: 1,
+		},
 		Matches: []matches.MatchResponse{
 			{
 				ID:        "match-1",
@@ -69,8 +74,8 @@ func TestHandlerList_Success(t *testing.T) {
 	var result matches.ListMatchesResponse
 	json.NewDecoder(resp.Body).Decode(&result)
 
-	if result.Total != 1 {
-		t.Fatalf("esperava 1 jogo, got %d", result.Total)
+	if result.Meta.TotalItems != 1 {
+		t.Fatalf("esperava 1 jogo, got %d", result.Meta.TotalItems)
 	}
 }
 

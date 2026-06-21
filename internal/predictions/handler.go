@@ -2,9 +2,9 @@
 package predictions
 
 import (
-	"net/http"
-
 	"bolao-copa/internal/auth"
+	"bolao-copa/internal/pagination"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,8 +19,9 @@ func NewHandler(service Service) *Handler {
 
 func (h *Handler) List(c *gin.Context) {
 	userID := auth.GetUserID(c)
+	page, limit := pagination.GetParams(c, 50)
 
-	resp, err := h.service.ListPredictions(c.Request.Context(), userID)
+	resp, err := h.service.ListPredictions(c.Request.Context(), userID, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar palpites"})
 		return

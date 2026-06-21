@@ -2,6 +2,7 @@
 package predictions
 
 import (
+	"bolao-copa/internal/pagination"
 	"context"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 )
 
 type Service interface {
-	ListPredictions(ctx context.Context, userID string) (ListPredictionsResponse, error)
+	ListPredictions(ctx context.Context, userID string, page, limit int) (ListPredictionsResponse, error)
 	UpsertPrediction(ctx context.Context, userID string, req UpsertPredictionRequest) error
 	GetSpecial(ctx context.Context, userID string) (SpecialPredictionResponse, error)
 	UpsertSpecial(ctx context.Context, userID string, req UpsertSpecialRequest) error
@@ -23,15 +24,16 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) ListPredictions(ctx context.Context, userID string) (ListPredictionsResponse, error) {
-	predictions, err := s.repo.FindByUser(ctx, userID)
+func (s *service) ListPredictions(ctx context.Context, userID string, page, limit int) (ListPredictionsResponse, error) {
+	offset := pagination.GetOffset(page, limit)
+	predictions, total, err := s.repo.FindByUser(ctx, userID, limit, offset)
 	if err != nil {
 		return ListPredictionsResponse{}, err
 	}
 
 	return ListPredictionsResponse{
 		Predictions: predictions,
-		Total:       len(predictions),
+		Meta:        pagination.NewMeta(page, limit, total),
 	}, nil
 }
 

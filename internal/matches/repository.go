@@ -8,7 +8,7 @@ import (
 )
 
 type Repository interface {
-    FindAll(ctx context.Context, filters MatchFilters) ([]MatchResponse, error)
+    FindAll(ctx context.Context, filters MatchFilters, limit, offset int) ([]MatchResponse, int, error)
     FindByID(ctx context.Context, id string) (MatchResponse, error)
     Upsert(ctx context.Context, match Match) error
     UpdateStatus(ctx context.Context, externalID string, status string, homeScore *int, awayScore *int) error
@@ -22,7 +22,20 @@ func NewRepository(db *sql.DB) Repository {
     return &postgresRepository{db: db}
 }
 
-func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters) ([]MatchResponse, error) {
+func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters, limit, offset int) ([]MatchResponse, int, error) {
+    var total int
+    countQuery := `
+        SELECT COUNT(*)
+        FROM matches m
+        WHERE ($1 = '' OR m.stage = $1)
+          AND ($2 = '' OR m.status = $2)
+          AND ($3 = '' OR m.group_name = $3)
+    `
+    err := r.db.QueryRowContext(ctx, countQuery, filters.Stage, filters.Status, filters.Group).Scan(&total)
+    if err != nil {
+        return nil, 0, fmt.Errorf("erro ao contar jogos: %w", err)
+    }
+
     query := `
         SELECT
             m.id,
@@ -41,11 +54,12 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters) 
           AND ($2 = '' OR m.status = $2)
           AND ($3 = '' OR m.group_name = $3)
         ORDER BY m.kickoff_at ASC
+        LIMIT $4 OFFSET $5
     `
 
-    rows, err := r.db.QueryContext(ctx, query, filters.Stage, filters.Status, filters.Group)
+    rows, err := r.db.QueryContext(ctx, query, filters.Stage, filters.Status, filters.Group, limit, offset)
     if err != nil {
-        return nil, fmt.Errorf("erro ao buscar jogos: %w", err)
+        return nil, 0, fmt.Errorf("erro ao buscar jogos: %w", err)
     }
     defer rows.Close()
 
@@ -69,7 +83,7 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters) 
             &awayID, &awayName, &awayFlag,
         )
         if err != nil {
-            return nil, fmt.Errorf("erro ao ler jogo: %w", err)
+            return nil, 0, fmt.Errorf("erro ao ler jogo: %w", err)
         }
 
         if homeID != nil {
@@ -85,10 +99,10 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters) 
     }
 
     if err := rows.Err(); err != nil {
-        return nil, fmt.Errorf("erro ao iterar jogos: %w", err)
+        return nil, 0, fmt.Errorf("erro ao iterar jogos: %w", err)
     }
 
-    return matches, nil
+    return matches, total, nil
 }
 
 func (r *postgresRepository) FindByID(ctx context.Context, id string) (MatchResponse, error) {

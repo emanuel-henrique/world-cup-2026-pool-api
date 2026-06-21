@@ -2,8 +2,8 @@
 package ranking
 
 import (
+	"bolao-copa/internal/pagination"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,8 +17,7 @@ func NewHandler(service Service) *Handler {
 }
 
 func (h *Handler) List(c *gin.Context) {
-	page, _  := strconv.Atoi(c.DefaultQuery("page", "1"))
-	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	page, limit := pagination.GetParams(c, 20)
 
 	resp, err := h.service.GetRanking(c.Request.Context(), page, limit)
 	if err != nil {

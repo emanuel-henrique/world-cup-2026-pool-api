@@ -1,7 +1,10 @@
 // internal/predictions/dto.go
 package predictions
 
-import "time"
+import (
+	"bolao-copa/internal/pagination"
+	"time"
+)
 
 // Requests
 type UpsertPredictionRequest struct {
@@ -35,5 +38,5 @@ type SpecialPredictionResponse struct {
 
 type ListPredictionsResponse struct {
 	Predictions []PredictionResponse `json:"predictions"`
-	Total       int                  `json:"total"`
+	Meta        pagination.Meta      `json:"meta"`
 }

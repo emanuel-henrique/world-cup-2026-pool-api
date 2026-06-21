@@ -24,8 +24,17 @@ func newMockRepository() *mockRepository {
 	}
 }
 
-func (m *mockRepository) FindByUser(ctx context.Context, userID string) ([]predictions.PredictionResponse, error) {
-	return m.predictions, nil
+func (m *mockRepository) FindByUser(ctx context.Context, userID string, limit, offset int) ([]predictions.PredictionResponse, int, error) {
+	total := len(m.predictions)
+	start := offset
+	if start > total {
+		start = total
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+	return m.predictions[start:end], total, nil
 }
 
 func (m *mockRepository) Upsert(ctx context.Context, p predictions.Prediction) error {
@@ -140,12 +149,12 @@ func TestListPredictions_Success(t *testing.T) {
 		AwayScore: 1,
 	})
 
-	resp, err := service.ListPredictions(context.Background(), "user-1")
+	resp, err := service.ListPredictions(context.Background(), "user-1", 1, 50)
 	if err != nil {
 		t.Fatalf("esperava sucesso, got erro: %v", err)
 	}
-	if resp.Total != 1 {
-		t.Fatalf("esperava 1 palpite, got %d", resp.Total)
+	if resp.Meta.TotalItems != 1 {
+		t.Fatalf("esperava 1 palpite, got %d", resp.Meta.TotalItems)
 	}
 }
 

@@ -2,6 +2,7 @@
 package ranking
 
 import (
+	"bolao-copa/internal/pagination"
 	"context"
 	"database/sql"
 	"fmt"
@@ -76,8 +77,6 @@ func (s *service) GetRanking(ctx context.Context, page int, limit int) (RankingR
 
 	return RankingResponse{
 		Entries: entries,
-		Total:   total,
-		Page:    page,
-		Limit:   limit,
+		Meta:    pagination.NewMeta(page, limit, total),
 	}, nil
 }

@@ -35,8 +35,8 @@ func TestHandlerList_Success(t *testing.T) {
 	var result ranking.RankingResponse
 	json.NewDecoder(resp.Body).Decode(&result)
 
-	if result.Total != 3 {
-		t.Fatalf("esperava total 3, got %d", result.Total)
+	if result.Meta.TotalItems != 3 {
+		t.Fatalf("esperava total 3, got %d", result.Meta.TotalItems)
 	}
 }
 
@@ -52,11 +52,11 @@ func TestHandlerList_DefaultPagination(t *testing.T) {
 	var result ranking.RankingResponse
 	json.NewDecoder(resp.Body).Decode(&result)
 
-	if result.Page != 1 {
-		t.Fatalf("esperava page 1, got %d", result.Page)
+	if result.Meta.Page != 1 {
+		t.Fatalf("esperava page 1, got %d", result.Meta.Page)
 	}
-	if result.Limit != 20 {
-		t.Fatalf("esperava limit 20, got %d", result.Limit)
+	if result.Meta.Limit != 20 {
+		t.Fatalf("esperava limit 20, got %d", result.Meta.Limit)
 	}
 }
 
@@ -72,11 +72,11 @@ func TestHandlerList_CustomPagination(t *testing.T) {
 	var result ranking.RankingResponse
 	json.NewDecoder(resp.Body).Decode(&result)
 
-	if result.Page != 2 {
-		t.Fatalf("esperava page 2, got %d", result.Page)
+	if result.Meta.Page != 2 {
+		t.Fatalf("esperava page 2, got %d", result.Meta.Page)
 	}
-	if result.Limit != 10 {
-		t.Fatalf("esperava limit 10, got %d", result.Limit)
+	if result.Meta.Limit != 10 {
+		t.Fatalf("esperava limit 10, got %d", result.Meta.Limit)
 	}
 }
 

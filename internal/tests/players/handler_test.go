@@ -16,7 +16,7 @@ import (
 // Mock do Repository
 type mockRepository struct{}
 
-func (m *mockRepository) FindAll(ctx context.Context) ([]players.PlayerResponse, error) {
+func (m *mockRepository) FindAll(ctx context.Context, limit, offset int) ([]players.PlayerResponse, int, error) {
 	return []players.PlayerResponse{
 		{
 			ID:   "player-1",
@@ -28,7 +28,7 @@ func (m *mockRepository) FindAll(ctx context.Context) ([]players.PlayerResponse,
 			Name: "Kylian Mbappé",
 			Team: players.TeamSummary{ID: "FRA", Name: "França", Flag: "https://flagcdn.com/w40/fr.png"},
 		},
-	}, nil
+	}, 2, nil
 }
 
 func setupRouter(handler *players.Handler) *gin.Engine {
@@ -56,8 +56,8 @@ func TestHandlerList_Success(t *testing.T) {
 	var result players.ListPlayersResponse
 	json.NewDecoder(resp.Body).Decode(&result)
 
-	if result.Total != 2 {
-		t.Fatalf("esperava 2 jogadores, got %d", result.Total)
+	if result.Meta.TotalItems != 2 {
+		t.Fatalf("esperava 2 jogadores, got %d", result.Meta.TotalItems)
 	}
 }
 

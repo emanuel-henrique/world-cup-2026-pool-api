@@ -1,6 +1,8 @@
 // internal/players/dto.go
 package players
 
+import "bolao-copa/internal/pagination"
+
 type PlayerResponse struct {
     ID       string      `json:"id"`
     Name     string      `json:"name"`
@@ -15,5 +17,5 @@ type TeamSummary struct {
 
 type ListPlayersResponse struct {
     Players []PlayerResponse `json:"players"`
-    Total   int              `json:"total"`
+    Meta    pagination.Meta  `json:"meta"`
 }

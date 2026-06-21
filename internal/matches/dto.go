@@ -1,11 +1,14 @@
 // internal/matches/dto.go
 package matches
 
-import "time"
+import (
+	"bolao-copa/internal/pagination"
+	"time"
+)
 
 type ListMatchesResponse struct {
     Matches []MatchResponse `json:"matches"`
-    Total   int             `json:"total"`
+    Meta    pagination.Meta `json:"meta"`
 }
 
 type MatchResponse struct {

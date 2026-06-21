@@ -41,12 +41,8 @@ func newMockRepository() *mockRepository {
 	}
 }
 
-func (m *mockRepository) FindAll(ctx context.Context, filters matches.MatchFilters) ([]matches.MatchResponse, error) {
-	if filters.Status == "" && filters.Stage == "" && filters.Group == "" {
-		return m.data, nil
-	}
-
-	var result []matches.MatchResponse
+func (m *mockRepository) FindAll(ctx context.Context, filters matches.MatchFilters, limit, offset int) ([]matches.MatchResponse, int, error) {
+	var filtered []matches.MatchResponse
 	for _, match := range m.data {
 		if filters.Status != "" && match.Status != filters.Status {
 			continue
@@ -54,9 +50,20 @@ func (m *mockRepository) FindAll(ctx context.Context, filters matches.MatchFilte
 		if filters.Stage != "" && match.Stage != filters.Stage {
 			continue
 		}
-		result = append(result, match)
+		filtered = append(filtered, match)
 	}
-	return result, nil
+
+	total := len(filtered)
+	start := offset
+	if start > total {
+		start = total
+	}
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+
+	return filtered[start:end], total, nil
 }
 
 func (m *mockRepository) FindByID(ctx context.Context, id string) (matches.MatchResponse, error) {
@@ -82,12 +89,12 @@ func TestListMatches_NoFilter(t *testing.T) {
 	repo    := newMockRepository()
 	service := matches.NewService(repo)
 
-	resp, err := service.ListMatches(context.Background(), matches.MatchFilters{})
+	resp, err := service.ListMatches(context.Background(), matches.MatchFilters{}, 1, 50)
 	if err != nil {
 		t.Fatalf("esperava sucesso, got erro: %v", err)
 	}
-	if resp.Total != 2 {
-		t.Fatalf("esperava 2 jogos, got %d", resp.Total)
+	if resp.Meta.TotalItems != 2 {
+		t.Fatalf("esperava 2 jogos, got %d", resp.Meta.TotalItems)
 	}
 }
 
@@ -97,12 +104,12 @@ func TestListMatches_FilterByStatus(t *testing.T) {
 
 	resp, err := service.ListMatches(context.Background(), matches.MatchFilters{
 		Status: string(matches.StatusFinished),
-	})
+	}, 1, 50)
 	if err != nil {
 		t.Fatalf("esperava sucesso, got erro: %v", err)
 	}
-	if resp.Total != 1 {
-		t.Fatalf("esperava 1 jogo finalizado, got %d", resp.Total)
+	if resp.Meta.TotalItems != 1 {
+		t.Fatalf("esperava 1 jogo finalizado, got %d", resp.Meta.TotalItems)
 	}
 }
 

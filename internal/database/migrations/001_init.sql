@@ -71,52 +71,51 @@ SELECT
   t.id   AS team_id,
   t.name AS team_name,
   t.flag,
-  COUNT(*)                                                          AS played,
+  COUNT(CASE WHEN m.status = 'finished' THEN 1 END) AS played,
   SUM(CASE
-    WHEN (m.home_team_id = t.id AND m.home_score > m.away_score)
-      OR (m.away_team_id = t.id AND m.away_score > m.home_score)
+    WHEN m.status = 'finished' AND ((m.home_team_id = t.id AND m.home_score > m.away_score)
+      OR (m.away_team_id = t.id AND m.away_score > m.home_score))
     THEN 1 ELSE 0
-  END)                                                              AS wins,
-  SUM(CASE WHEN m.home_score = m.away_score THEN 1 ELSE 0 END)     AS draws,
+  END) AS wins,
+  SUM(CASE WHEN m.status = 'finished' AND m.home_score = m.away_score THEN 1 ELSE 0 END) AS draws,
   SUM(CASE
-    WHEN (m.home_team_id = t.id AND m.home_score < m.away_score)
-      OR (m.away_team_id = t.id AND m.away_score < m.home_score)
+    WHEN m.status = 'finished' AND ((m.home_team_id = t.id AND m.home_score < m.away_score)
+      OR (m.away_team_id = t.id AND m.away_score < m.home_score))
     THEN 1 ELSE 0
-  END)                                                              AS losses,
+  END) AS losses,
   SUM(CASE
-    WHEN m.home_team_id = t.id THEN m.home_score
-    WHEN m.away_team_id = t.id THEN m.away_score
+    WHEN m.status = 'finished' AND m.home_team_id = t.id THEN m.home_score
+    WHEN m.status = 'finished' AND m.away_team_id = t.id THEN m.away_score
     ELSE 0
-  END)                                                              AS goals_for,
+  END) AS goals_for,
   SUM(CASE
-    WHEN m.home_team_id = t.id THEN m.away_score
-    WHEN m.away_team_id = t.id THEN m.home_score
+    WHEN m.status = 'finished' AND m.home_team_id = t.id THEN m.away_score
+    WHEN m.status = 'finished' AND m.away_team_id = t.id THEN m.home_score
     ELSE 0
-  END)                                                              AS goals_against,
+  END) AS goals_against,
   SUM(CASE
-    WHEN (m.home_team_id = t.id AND m.home_score > m.away_score)
-      OR (m.away_team_id = t.id AND m.away_score > m.home_score)
+    WHEN m.status = 'finished' AND ((m.home_team_id = t.id AND m.home_score > m.away_score)
+      OR (m.away_team_id = t.id AND m.away_score > m.home_score))
     THEN 3
-    WHEN m.home_score = m.away_score THEN 1
+    WHEN m.status = 'finished' AND m.home_score = m.away_score THEN 1
     ELSE 0
-  END)                                                              AS points
+  END) AS points
 FROM matches m
 JOIN teams t ON t.id IN (m.home_team_id, m.away_team_id)
 WHERE m.stage = 'group'
-  AND m.status = 'finished'
   AND m.group_name IS NOT NULL
 GROUP BY m.group_name, t.id, t.name, t.flag
 ORDER BY
 m.group_name,
 SUM(CASE
-  WHEN (m.home_team_id = t.id AND m.home_score > m.away_score)
-    OR (m.away_team_id = t.id AND m.away_score > m.home_score)
+  WHEN m.status = 'finished' AND ((m.home_team_id = t.id AND m.home_score > m.away_score)
+    OR (m.away_team_id = t.id AND m.away_score > m.home_score))
   THEN 3
-  WHEN m.home_score = m.away_score THEN 1
+  WHEN m.status = 'finished' AND m.home_score = m.away_score THEN 1
   ELSE 0
 END) DESC,
   (
-    SUM(CASE WHEN m.home_team_id = t.id THEN m.home_score WHEN m.away_team_id = t.id THEN m.away_score ELSE 0 END) -
-    SUM(CASE WHEN m.home_team_id = t.id THEN m.away_score WHEN m.away_team_id = t.id THEN m.home_score ELSE 0 END)
+    SUM(CASE WHEN m.status = 'finished' AND m.home_team_id = t.id THEN m.home_score WHEN m.status = 'finished' AND m.away_team_id = t.id THEN m.away_score ELSE 0 END) -
+    SUM(CASE WHEN m.status = 'finished' AND m.home_team_id = t.id THEN m.away_score WHEN m.status = 'finished' AND m.away_team_id = t.id THEN m.home_score ELSE 0 END)
   ) DESC,
-SUM(CASE WHEN m.home_team_id = t.id THEN m.home_score WHEN m.away_team_id = t.id THEN m.away_score ELSE 0 END) DESC;
+SUM(CASE WHEN m.status = 'finished' AND m.home_team_id = t.id THEN m.home_score WHEN m.status = 'finished' AND m.away_team_id = t.id THEN m.away_score ELSE 0 END) DESC;

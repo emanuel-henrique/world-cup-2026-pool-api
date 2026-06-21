@@ -2,6 +2,7 @@
 package matches
 
 import (
+	"bolao-copa/internal/pagination"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -16,13 +17,14 @@ func NewHandler(service Service) *Handler {
 }
 
 func (h *Handler) List(c *gin.Context) {
+    page, limit := pagination.GetParams(c, 50)
     filters := MatchFilters{
         Stage:  c.Query("stage"),
         Status: c.Query("status"),
         Group:  c.Query("group"),
     }
 
-    resp, err := h.service.ListMatches(c.Request.Context(), filters)
+    resp, err := h.service.ListMatches(c.Request.Context(), filters, page, limit)
     if err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{"error": "erro ao buscar jogos"})
         return

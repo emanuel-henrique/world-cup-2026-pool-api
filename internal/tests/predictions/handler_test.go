@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"bolao-copa/internal/auth"
+	"bolao-copa/internal/pagination"
 	"bolao-copa/internal/predictions"
 
 	"github.com/gin-gonic/gin"
@@ -18,9 +19,14 @@ import (
 // Mock do Service
 type mockService struct{}
 
-func (m *mockService) ListPredictions(ctx context.Context, userID string) (predictions.ListPredictionsResponse, error) {
+func (m *mockService) ListPredictions(ctx context.Context, userID string, page, limit int) (predictions.ListPredictionsResponse, error) {
 	return predictions.ListPredictionsResponse{
-		Total:       1,
+		Meta: pagination.Meta{
+			Page:       1,
+			Limit:      50,
+			TotalItems: 1,
+			TotalPages: 1,
+		},
 		Predictions: []predictions.PredictionResponse{{ID: "pred-1", MatchID: "match-1"}},
 	}, nil
 }
@@ -73,8 +79,8 @@ func TestHandlerList_Success(t *testing.T) {
 	var result predictions.ListPredictionsResponse
 	json.NewDecoder(resp.Body).Decode(&result)
 
-	if result.Total != 1 {
-		t.Fatalf("esperava 1 palpite, got %d", result.Total)
+	if result.Meta.TotalItems != 1 {
+		t.Fatalf("esperava 1 palpite, got %d", result.Meta.TotalItems)
 	}
 }
 

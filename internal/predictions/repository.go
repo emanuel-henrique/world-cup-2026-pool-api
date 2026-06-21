@@ -9,7 +9,7 @@ import (
 )
 
 type Repository interface {
-	FindByUser(ctx context.Context, userID string) ([]PredictionResponse, error)
+	FindByUser(ctx context.Context, userID string, limit, offset int) ([]PredictionResponse, int, error)
 	Upsert(ctx context.Context, p Prediction) error
 	FindSpecialByUser(ctx context.Context, userID string) (SpecialPredictionResponse, error)
 	UpsertSpecial(ctx context.Context, sp SpecialPrediction) error
@@ -24,17 +24,24 @@ func NewRepository(db *sql.DB) Repository {
 	return &postgresRepository{db: db}
 }
 
-func (r *postgresRepository) FindByUser(ctx context.Context, userID string) ([]PredictionResponse, error) {
+func (r *postgresRepository) FindByUser(ctx context.Context, userID string, limit, offset int) ([]PredictionResponse, int, error) {
+	var total int
+	err := r.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM predictions WHERE user_id = $1", userID).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("erro ao contar palpites: %w", err)
+	}
+
 	query := `
 		SELECT id, match_id, home_score, away_score, points, scored, updated_at
 		FROM predictions
 		WHERE user_id = $1
 		ORDER BY updated_at DESC
+		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, userID)
+	rows, err := r.db.QueryContext(ctx, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao buscar palpites: %w", err)
+		return nil, 0, fmt.Errorf("erro ao buscar palpites: %w", err)
 	}
 	defer rows.Close()
 
@@ -43,16 +50,16 @@ func (r *postgresRepository) FindByUser(ctx context.Context, userID string) ([]P
 		var p PredictionResponse
 		err := rows.Scan(&p.ID, &p.MatchID, &p.HomeScore, &p.AwayScore, &p.Points, &p.Scored, &p.UpdatedAt)
 		if err != nil {
-			return nil, fmt.Errorf("erro ao ler palpite: %w", err)
+			return nil, 0, fmt.Errorf("erro ao ler palpite: %w", err)
 		}
 		result = append(result, p)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("erro ao iterar palpites: %w", err)
+		return nil, 0, fmt.Errorf("erro ao iterar palpites: %w", err)
 	}
 
-	return result, nil
+	return result, total, nil
 }
 
 func (r *postgresRepository) Upsert(ctx context.Context, p Prediction) error {
