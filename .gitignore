@@ -1,0 +1,38 @@
+# Binários
+bolao-copa
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output de coverage
+*.out
+coverage.html
+
+# Variáveis de ambiente
+.env
+.env.local
+.env.*.local
+
+# Dependências vendorizadas (se não usar vendor/)
+vendor/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Air (live reload)
+tmp/
