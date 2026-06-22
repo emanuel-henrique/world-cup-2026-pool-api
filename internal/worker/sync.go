@@ -128,9 +128,11 @@ type fixture struct {
 	ExternalID string
 	HomeTeamID string
 	AwayTeamID string
-	HomeScore  *int
-	AwayScore  *int
-	Status     string
+	HomeScore    *int
+	AwayScore    *int
+	HomeHalfTime *int
+	AwayHalfTime *int
+	Status       string
 	KickoffAt  time.Time
 	Stage      string
 	GroupName  *string
@@ -235,17 +237,19 @@ func (w *Worker) fetchFixtures() ([]fixture, error) {
 		}
 
 		f := fixture{
-			ExternalID: fmt.Sprintf("%d", m.ID),
-			HomeTeamID: fmt.Sprintf("%d", m.HomeTeam.ID),
-			AwayTeamID: fmt.Sprintf("%d", m.AwayTeam.ID),
-			HomeScore:  m.Score.FullTime.Home,
-			AwayScore:  m.Score.FullTime.Away,
-			Status:     status,
-			KickoffAt:  kickoff,
-			Stage:      stage,
-			GroupName:  groupName,
-			Goals:      goals,
-			Minute:     m.Minute,
+			ExternalID:   fmt.Sprintf("%d", m.ID),
+			HomeTeamID:   fmt.Sprintf("%d", m.HomeTeam.ID),
+			AwayTeamID:   fmt.Sprintf("%d", m.AwayTeam.ID),
+			HomeScore:    m.Score.FullTime.Home,
+			AwayScore:    m.Score.FullTime.Away,
+			HomeHalfTime: m.Score.HalfTime.Home, // Adicionado
+			AwayHalfTime: m.Score.HalfTime.Away, // Adicionado
+			Status:       status,
+			KickoffAt:    kickoff,
+			Stage:        stage,
+			GroupName:    groupName,
+			Goals:        goals,
+			Minute:       m.Minute,
 		}
 		fixtures = append(fixtures, f)
 	}
@@ -333,10 +337,10 @@ func (w *Worker) createMatch(ctx context.Context, f fixture) error {
     // Criar o jogo
     var matchID string
     err = w.db.QueryRowContext(ctx, `
-        INSERT INTO matches (external_id, home_team_id, away_team_id, home_score, away_score, stage, group_name, kickoff_at, status, minute)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        INSERT INTO matches (external_id, home_team_id, away_team_id, home_score, away_score, home_half_time, away_half_time, stage, group_name, kickoff_at, status, minute)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING id
-    `, f.ExternalID, homeTeamID, awayTeamID, f.HomeScore, f.AwayScore, f.Stage, f.GroupName, f.KickoffAt, f.Status, f.Minute).Scan(&matchID)
+    `, f.ExternalID, homeTeamID, awayTeamID, f.HomeScore, f.AwayScore, f.HomeHalfTime, f.AwayHalfTime, f.Stage, f.GroupName, f.KickoffAt, f.Status, f.Minute).Scan(&matchID)
     if err != nil {
         return fmt.Errorf("erro ao criar jogo: %w", err)
     }
@@ -359,12 +363,14 @@ func (w *Worker) createMatch(ctx context.Context, f fixture) error {
 func (w *Worker) updateMatch(ctx context.Context, f fixture) error {
     _, err := w.db.ExecContext(ctx, `
         UPDATE matches
-        SET status     = $1,
-            home_score = $2,
-            away_score = $3,
-            minute     = $4
-        WHERE external_id = $5
-    `, f.Status, f.HomeScore, f.AwayScore, f.Minute, f.ExternalID)
+        SET status         = $1,
+            home_score     = $2,
+            away_score     = $3,
+            home_half_time = $4,
+            away_half_time = $5,
+            minute         = $6
+        WHERE external_id = $7
+    `, f.Status, f.HomeScore, f.AwayScore, f.HomeHalfTime, f.AwayHalfTime, f.Minute, f.ExternalID)
     if err != nil {
         return err
     }

@@ -10,6 +10,8 @@ type Match struct {
     AwayTeamID *string   `json:"away_team_id"`
     HomeScore  *int      `json:"home_score"`
     AwayScore  *int      `json:"away_score"`
+    HomeHalfTime *int      `json:"home_half_time"`
+    AwayHalfTime *int      `json:"away_half_time"`
     Stage      string    `json:"stage"`
     GroupName  *string   `json:"group_name"`
     KickoffAt  time.Time `json:"kickoff_at"`
