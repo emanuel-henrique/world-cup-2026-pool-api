@@ -8,14 +8,14 @@ API REST para um bolão público da Copa do Mundo 2026. Qualquer pessoa pode se 
 
 ## 🚀 Stack
 
-| Camada | Tecnologia |
-|--------|------------|
-| Backend | Go + Gin |
-| Banco de dados | PostgreSQL (Neon) |
-| Autenticação | JWT (golang-jwt/jwt) + bcrypt |
-| Dados esportivos | API-Football (RapidAPI) |
-| Deploy | Render |
-| Frontend | React + TypeScript + Vite (repositório separado) |
+| Camada           | Tecnologia                                       |
+| ---------------- | ------------------------------------------------ |
+| Backend          | Go + Gin                                         |
+| Banco de dados   | PostgreSQL (Neon)                                |
+| Autenticação     | JWT (golang-jwt/jwt) + bcrypt                    |
+| Dados esportivos | API-Football (RapidAPI)                          |
+| Deploy           | Render                                           |
+| Frontend         | React + TypeScript + Vite (repositório separado) |
 
 ---
 
@@ -35,15 +35,15 @@ API REST para um bolão público da Copa do Mundo 2026. Qualquer pessoa pode se 
 
 ## 🏆 Tabela de Pontuação
 
-| Acerto | Pontos |
-|--------|--------|
-| Placar exato | 10 pts |
-| Vencedor + saldo de gols correto | 7 pts |
-| Vencedor correto | 5 pts |
-| Empate previsto corretamente | 5 pts |
-| Campeão correto | 30 pts |
-| Artilheiro correto | 20 pts |
-| Nenhum acerto | 0 pts |
+| Acerto                           | Pontos |
+| -------------------------------- | ------ |
+| Placar exato                     | 10 pts |
+| Vencedor + saldo de gols correto | 7 pts  |
+| Vencedor correto                 | 5 pts  |
+| Empate previsto corretamente     | 5 pts  |
+| Campeão correto                  | 30 pts |
+| Artilheiro correto               | 20 pts |
+| Nenhum acerto                    | 0 pts  |
 
 ---
 
@@ -90,45 +90,52 @@ internal/<módulo>/
 ## 🔌 Endpoints
 
 ### Autenticação
-| Método | Rota | Auth |
-|--------|------|------|
-| POST | `/auth/register` | ❌ |
-| POST | `/auth/login` | ❌ |
+
+| Método | Rota             | Auth |
+| ------ | ---------------- | ---- |
+| POST   | `/auth/register` | ❌   |
+| POST   | `/auth/login`    | ❌   |
 
 ### Jogos
-| Método | Rota | Auth |
-|--------|------|------|
-| GET | `/matches` | ❌ |
-| GET | `/matches/:id` | ❌ |
+
+| Método | Rota           | Auth |
+| ------ | -------------- | ---- |
+| GET    | `/matches`     | ❌   |
+| GET    | `/matches/:id` | ❌   |
 
 ### Grupos
-| Método | Rota | Auth |
-|--------|------|------|
-| GET | `/groups` | ❌ |
-| GET | `/groups/:name` | ❌ |
+
+| Método | Rota            | Auth |
+| ------ | --------------- | ---- |
+| GET    | `/groups`       | ❌   |
+| GET    | `/groups/:name` | ❌   |
 
 ### Mata-mata
-| Método | Rota | Auth |
-|--------|------|------|
-| GET | `/bracket` | ❌ |
+
+| Método | Rota       | Auth |
+| ------ | ---------- | ---- |
+| GET    | `/bracket` | ❌   |
 
 ### Jogadores
-| Método | Rota | Auth |
-|--------|------|------|
-| GET | `/players` | ❌ |
+
+| Método | Rota       | Auth |
+| ------ | ---------- | ---- |
+| GET    | `/players` | ❌   |
 
 ### Palpites
-| Método | Rota | Auth |
-|--------|------|------|
-| GET | `/predictions` | ✅ |
-| POST | `/predictions` | ✅ |
-| GET | `/predictions/special` | ✅ |
-| POST | `/predictions/special` | ✅ |
+
+| Método | Rota                   | Auth |
+| ------ | ---------------------- | ---- |
+| GET    | `/predictions`         | ✅   |
+| POST   | `/predictions`         | ✅   |
+| GET    | `/predictions/special` | ✅   |
+| POST   | `/predictions/special` | ✅   |
 
 ### Ranking
-| Método | Rota | Auth |
-|--------|------|------|
-| GET | `/ranking` | ❌ |
+
+| Método | Rota       | Auth |
+| ------ | ---------- | ---- |
+| GET    | `/ranking` | ❌   |
 
 ---
 
@@ -159,7 +166,7 @@ Edite o `.env`:
 DATABASE_URL=postgres://user:password@host/dbname?sslmode=require
 JWT_SECRET=um_segredo_longo_e_aleatorio
 API_FOOTBALL_KEY=sua_chave_da_rapidapi
-PORT=8080
+PORT=8081
 ```
 
 ### 3. Instale as dependências

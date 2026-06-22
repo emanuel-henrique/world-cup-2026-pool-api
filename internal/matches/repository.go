@@ -7,6 +7,13 @@ import (
 	"fmt"
 )
 
+func derefStr(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
 type Repository interface {
     FindAll(ctx context.Context, filters MatchFilters, limit, offset int) ([]MatchResponse, int, error)
     FindByID(ctx context.Context, id string) (MatchResponse, error)
@@ -45,11 +52,11 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters, 
             m.group_name,
             m.kickoff_at,
             m.status,
-            ht.id,   ht.name, ht.flag,
-            at.id,   at.name, at.flag
+            ht.id,   ht.name, COALESCE(ht.flag, ''),
+            at.id,   at.name, COALESCE(at.flag, '')
         FROM matches m
-        LEFT JOIN teams ht ON ht.id = m.home_team_id
-        LEFT JOIN teams at ON at.id = m.away_team_id
+        INNER JOIN teams ht ON ht.id = m.home_team_id
+        INNER JOIN teams at ON at.id = m.away_team_id
         WHERE ($1 = '' OR m.stage = $1)
           AND ($2 = '' OR m.status = $2)
           AND ($3 = '' OR m.group_name = $3)
@@ -63,7 +70,7 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters, 
     }
     defer rows.Close()
 
-    var matches []MatchResponse
+    matches := []MatchResponse{}
     for rows.Next() {
         var m MatchResponse
         var home, away TeamSummary
@@ -87,11 +94,11 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters, 
         }
 
         if homeID != nil {
-            home = TeamSummary{ID: *homeID, Name: *homeName, Flag: *homeFlag}
+            home = TeamSummary{ID: *homeID, Name: derefStr(homeName), Flag: derefStr(homeFlag)}
             m.HomeTeam = &home
         }
         if awayID != nil {
-            away = TeamSummary{ID: *awayID, Name: *awayName, Flag: *awayFlag}
+            away = TeamSummary{ID: *awayID, Name: derefStr(awayName), Flag: derefStr(awayFlag)}
             m.AwayTeam = &away
         }
 
@@ -115,8 +122,8 @@ func (r *postgresRepository) FindByID(ctx context.Context, id string) (MatchResp
             m.group_name,
             m.kickoff_at,
             m.status,
-            ht.id,   ht.name, ht.flag,
-            at.id,   at.name, at.flag
+            ht.id,   ht.name, COALESCE(ht.flag, ''),
+            at.id,   at.name, COALESCE(at.flag, '')
         FROM matches m
         LEFT JOIN teams ht ON ht.id = m.home_team_id
         LEFT JOIN teams at ON at.id = m.away_team_id
@@ -148,11 +155,11 @@ func (r *postgresRepository) FindByID(ctx context.Context, id string) (MatchResp
     }
 
     if homeID != nil {
-        home = TeamSummary{ID: *homeID, Name: *homeName, Flag: *homeFlag}
+        home = TeamSummary{ID: *homeID, Name: derefStr(homeName), Flag: derefStr(homeFlag)}
         m.HomeTeam = &home
     }
     if awayID != nil {
-        away = TeamSummary{ID: *awayID, Name: *awayName, Flag: *awayFlag}
+        away = TeamSummary{ID: *awayID, Name: derefStr(awayName), Flag: derefStr(awayFlag)}
         m.AwayTeam = &away
     }
 

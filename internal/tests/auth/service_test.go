@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"bolao-copa/internal/auth"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Mock do Repository
@@ -138,4 +140,80 @@ func TestLogin_UserNotFound(t *testing.T) {
     if err != auth.ErrInvalidCredentials {
         t.Fatalf("esperava ErrInvalidCredentials, got: %v", err)
     }
+}
+
+// Testa que o JWT contém os claims esperados pelo frontend (user_id, name, email)
+func TestRegister_TokenContainsUserClaims(t *testing.T) {
+    repo    := newMockRepository()
+    service := auth.NewService(repo)
+
+    req := auth.RegisterRequest{
+        Name:     "Emanuel",
+        Email:    "emanuel@email.com",
+        Password: "senha123",
+    }
+
+    resp, err := service.Register(context.Background(), req)
+    if err != nil {
+        t.Fatalf("register falhou: %v", err)
+    }
+
+    claims := parseTokenClaims(t, resp.Token)
+
+    if claims["user_id"] != claims["sub"] {
+        t.Fatalf("user_id (%v) deveria ser igual a sub (%v)", claims["user_id"], claims["sub"])
+    }
+    if claims["name"] != "Emanuel" {
+        t.Fatalf("esperava name=Emanuel, got %v", claims["name"])
+    }
+    if claims["email"] != "emanuel@email.com" {
+        t.Fatalf("esperava email=emanuel@email.com, got %v", claims["email"])
+    }
+}
+
+func TestLogin_TokenContainsUserClaims(t *testing.T) {
+    repo    := newMockRepository()
+    service := auth.NewService(repo)
+
+    _, err := service.Register(context.Background(), auth.RegisterRequest{
+        Name:     "Maria",
+        Email:    "maria@email.com",
+        Password: "senha123",
+    })
+    if err != nil {
+        t.Fatalf("register falhou: %v", err)
+    }
+
+    resp, err := service.Login(context.Background(), auth.LoginRequest{
+        Email:    "maria@email.com",
+        Password: "senha123",
+    })
+    if err != nil {
+        t.Fatalf("login falhou: %v", err)
+    }
+
+    claims := parseTokenClaims(t, resp.Token)
+
+    if claims["user_id"] == nil || claims["user_id"] == "" {
+        t.Fatal("esperava user_id no token")
+    }
+    if claims["name"] != "Maria" {
+        t.Fatalf("esperava name=Maria, got %v", claims["name"])
+    }
+    if claims["email"] != "maria@email.com" {
+        t.Fatalf("esperava email=maria@email.com, got %v", claims["email"])
+    }
+}
+
+func parseTokenClaims(t *testing.T, tokenStr string) jwt.MapClaims {
+    t.Helper()
+    token, _, err := jwt.NewParser().ParseUnverified(tokenStr, jwt.MapClaims{})
+    if err != nil {
+        t.Fatalf("erro ao parsear token: %v", err)
+    }
+    claims, ok := token.Claims.(jwt.MapClaims)
+    if !ok {
+        t.Fatal("claims não é MapClaims")
+    }
+    return claims
 }

@@ -244,14 +244,14 @@ func (w *Worker) getMatchID(ctx context.Context, externalID string) (string, err
 }
 
 func (w *Worker) updateMatch(ctx context.Context, f fixture) error {
-	_, err := w.db.ExecContext(ctx, `
-		UPDATE matches
-		SET status     = $1,
-		    home_score = $2,
-		    away_score = $3
-		WHERE external_id = $4
-	`, f.Status, f.HomeScore, f.AwayScore, f.ExternalID)
-	return err
+    _, err := w.db.ExecContext(ctx, `
+        UPDATE matches
+        SET status     = $1,
+            home_score = $2,
+            away_score = $3
+        WHERE external_id = $4
+    `, f.Status, f.HomeScore, f.AwayScore, f.ExternalID)
+    return err
 }
 
 func (w *Worker) populateBracketIfReady(ctx context.Context) error {

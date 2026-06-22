@@ -23,7 +23,7 @@ func NewService(db *sql.DB) Service {
 func (s *service) ListGroups(ctx context.Context) (ListGroupsResponse, error) {
     query := `
         SELECT
-            group_name, team_id, team_name, flag,
+            group_name, team_id, team_name, COALESCE(flag, ''),
             played, wins, draws, losses,
             goals_for, goals_against, points
         FROM group_standings
@@ -75,7 +75,7 @@ func (s *service) GetGroup(ctx context.Context, name string) (GroupDetailRespons
     // Busca standings do grupo
     standingsQuery := `
         SELECT
-            team_id, team_name, flag,
+            team_id, team_name, COALESCE(flag, ''),
             played, wins, draws, losses,
             goals_for, goals_against, points
         FROM group_standings
@@ -116,8 +116,8 @@ func (s *service) GetGroup(ctx context.Context, name string) (GroupDetailRespons
         SELECT
             m.id, m.status, m.kickoff_at,
             m.home_score, m.away_score,
-            ht.name, ht.flag,
-            at.name, at.flag
+            COALESCE(ht.name, ''), COALESCE(ht.flag, ''),
+            COALESCE(at.name, ''), COALESCE(at.flag, '')
         FROM matches m
         LEFT JOIN teams ht ON ht.id = m.home_team_id
         LEFT JOIN teams at ON at.id = m.away_team_id

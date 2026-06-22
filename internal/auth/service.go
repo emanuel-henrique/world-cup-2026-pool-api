@@ -43,7 +43,7 @@ func (s *service) Register(ctx context.Context, req RegisterRequest) (TokenRespo
         return TokenResponse{}, fmt.Errorf("erro ao criar usuário: %w", err)
     }
 
-    token, err := generateToken(user.ID)
+    token, err := generateToken(user)
     if err != nil {
         return TokenResponse{}, fmt.Errorf("erro ao gerar token: %w", err)
     }
@@ -64,7 +64,7 @@ func (s *service) Login(ctx context.Context, req LoginRequest) (TokenResponse, e
         return TokenResponse{}, ErrInvalidCredentials
     }
 
-    token, err := generateToken(user.ID)
+    token, err := generateToken(user)
     if err != nil {
         return TokenResponse{}, fmt.Errorf("erro ao gerar token: %w", err)
     }
@@ -72,16 +72,19 @@ func (s *service) Login(ctx context.Context, req LoginRequest) (TokenResponse, e
    return TokenResponse{Token: token}, nil
 }
 
-func generateToken(userID string) (string, error) {
+func generateToken(user User) (string, error) {
     secret := os.Getenv("JWT_SECRET")
     if secret == "" {
         return "", fmt.Errorf("JWT_SECRET não definido")
     }
 
     claims := jwt.MapClaims{
-        "sub": userID,
-        "exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
-        "iat": time.Now().Unix(),
+        "sub":     user.ID,
+        "user_id": user.ID,
+        "name":    user.Name,
+        "email":   user.Email,
+        "exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
+        "iat":     time.Now().Unix(),
     }
 
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
