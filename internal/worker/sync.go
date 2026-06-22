@@ -27,12 +27,25 @@ func New(db *sql.DB) *Worker {
 }
 
 func (w *Worker) Start(ctx context.Context) {
+	log.Println("[worker] iniciado — aguardando alinhamento com o próximo minuto exato")
+
+	// Aguarda até o próximo minuto exato (segundo 00)
+	nextMinute := time.Now().Truncate(time.Minute).Add(time.Minute)
+	sleepDuration := time.Until(nextMinute)
+	log.Printf("[worker] aguardando %v até o próximo minuto exato", sleepDuration)
+	
+	select {
+	case <-time.After(sleepDuration):
+		log.Println("[worker] alinhado com o minuto exato — iniciando loop de sincronização")
+	case <-ctx.Done():
+		log.Println("[worker] encerrado antes do alinhamento")
+		return
+	}
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
 
-	log.Println("[worker] iniciado — sincronizando a cada 1 minuto")
-
-	// Roda imediatamente na inicialização
+	// Roda imediatamente após o alinhamento
 	w.run(ctx)
 
 	for {
@@ -57,16 +70,25 @@ func (w *Worker) run(ctx context.Context) {
 
 	for _, f := range fixtures {
 		prev, err := w.getMatchStatus(ctx, f.ExternalID)
-		if err != nil {
+		if err != nil && err != sql.ErrNoRows {
 			log.Printf("[worker] erro ao buscar status do jogo %s: %v", f.ExternalID, err)
 			continue
 		}
 
-		// Atualiza status e placar no banco
-		err = w.updateMatch(ctx, f)
-		if err != nil {
-			log.Printf("[worker] erro ao atualizar jogo %s: %v", f.ExternalID, err)
-			continue
+		// Se o jogo não existe, cria
+		if prev == "" {
+			err = w.createMatch(ctx, f)
+			if err != nil {
+				log.Printf("[worker] erro ao criar jogo %s: %v", f.ExternalID, err)
+				continue
+			}
+		} else {
+			// Atualiza status e placar no banco
+			err = w.updateMatch(ctx, f)
+			if err != nil {
+				log.Printf("[worker] erro ao atualizar jogo %s: %v", f.ExternalID, err)
+				continue
+			}
 		}
 
 		// Se acabou de terminar → calcula pontuação
@@ -96,6 +118,12 @@ func (w *Worker) run(ctx context.Context) {
 
 // --- API-Football ---
 
+type Goal struct {
+	PlayerName string `json:"playerName"`
+	Minute     int    `json:"minute"`
+	Team       string `json:"team"` // "home" or "away"
+}
+
 type fixture struct {
 	ExternalID string
 	HomeTeamID string
@@ -106,6 +134,8 @@ type fixture struct {
 	KickoffAt  time.Time
 	Stage      string
 	GroupName  *string
+	Goals      []Goal
+	Minute     *int // current minute for live matches
 }
 
 type apiResponse struct {
@@ -126,7 +156,23 @@ type apiResponse struct {
 				Home *int `json:"home"`
 				Away *int `json:"away"`
 			} `json:"fullTime"`
+			HalfTime struct {
+				Home *int `json:"home"`
+				Away *int `json:"away"`
+			} `json:"halfTime"`
 		} `json:"score"`
+		Goals []struct {
+			PlayerName string `json:"playerName"`
+			Minute     int    `json:"minute"`
+			Team       string `json:"team"` // "home" or "away"
+		} `json:"goals,omitempty"`
+		Events []struct {
+			PlayerName string `json:"playerName"`
+			Minute     int    `json:"minute"`
+			Team       string `json:"team"` // "home" or "away"
+			Type       string `json:"type"` // "goal", "card", etc.
+		} `json:"events,omitempty"`
+		Minute *int `json:"minute"` // current minute for live matches
 	} `json:"matches"`
 }
 
@@ -139,6 +185,7 @@ func (w *Worker) fetchFixtures() ([]fixture, error) {
 		return nil, fmt.Errorf("erro ao criar request: %w", err)
 	}
 	req.Header.Set("X-Auth-Token", apiKey)
+	req.Header.Set("X-Unfold-Goals", "true")
 
 	resp, err := w.client.Do(req)
 	if err != nil {
@@ -162,6 +209,31 @@ func (w *Worker) fetchFixtures() ([]fixture, error) {
 
 		stage, groupName := MapStageAndGroup(m.Stage, m.Group)
 
+		// Process goals - tenta tanto de Goals quanto de Events
+		var goals []Goal
+		if m.Goals != nil && len(m.Goals) > 0 {
+			for _, g := range m.Goals {
+				if g.PlayerName != "" && g.Team != "" {
+					goals = append(goals, Goal{
+						PlayerName: g.PlayerName,
+						Minute:     g.Minute,
+						Team:       g.Team,
+					})
+				}
+			}
+		}
+		if m.Events != nil && len(m.Events) > 0 {
+			for _, e := range m.Events {
+				if e.Type == "goal" && e.PlayerName != "" && e.Team != "" {
+					goals = append(goals, Goal{
+						PlayerName: e.PlayerName,
+						Minute:     e.Minute,
+						Team:       e.Team,
+					})
+				}
+			}
+		}
+
 		f := fixture{
 			ExternalID: fmt.Sprintf("%d", m.ID),
 			HomeTeamID: fmt.Sprintf("%d", m.HomeTeam.ID),
@@ -172,12 +244,15 @@ func (w *Worker) fetchFixtures() ([]fixture, error) {
 			KickoffAt:  kickoff,
 			Stage:      stage,
 			GroupName:  groupName,
+			Goals:      goals,
+			Minute:     m.Minute,
 		}
 		fixtures = append(fixtures, f)
 	}
 
 	return fixtures, nil
 }
+
 
 func MapStatus(status string) string {
 	switch status {
@@ -243,15 +318,82 @@ func (w *Worker) getMatchID(ctx context.Context, externalID string) (string, err
 	return id, err
 }
 
+func (w *Worker) createMatch(ctx context.Context, f fixture) error {
+    // Primeiro, buscar os IDs dos times no banco
+    var homeTeamID, awayTeamID string
+    err := w.db.QueryRowContext(ctx, `SELECT id FROM teams WHERE external_id = $1`, f.HomeTeamID).Scan(&homeTeamID)
+    if err != nil {
+        return fmt.Errorf("erro ao buscar time home: %w", err)
+    }
+    err = w.db.QueryRowContext(ctx, `SELECT id FROM teams WHERE external_id = $1`, f.AwayTeamID).Scan(&awayTeamID)
+    if err != nil {
+        return fmt.Errorf("erro ao buscar time away: %w", err)
+    }
+
+    // Criar o jogo
+    var matchID string
+    err = w.db.QueryRowContext(ctx, `
+        INSERT INTO matches (external_id, home_team_id, away_team_id, home_score, away_score, stage, group_name, kickoff_at, status, minute)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING id
+    `, f.ExternalID, homeTeamID, awayTeamID, f.HomeScore, f.AwayScore, f.Stage, f.GroupName, f.KickoffAt, f.Status, f.Minute).Scan(&matchID)
+    if err != nil {
+        return fmt.Errorf("erro ao criar jogo: %w", err)
+    }
+
+    // Inserir gols
+    for _, g := range f.Goals {
+        _, err = w.db.ExecContext(ctx, `
+            INSERT INTO goals (match_id, player_name, minute, team)
+            VALUES ($1, $2, $3, $4)
+        `, matchID, g.PlayerName, g.Minute, g.Team)
+        if err != nil {
+            log.Printf("[worker] erro ao inserir gol: %v", err)
+            continue
+        }
+    }
+
+    return nil
+}
+
 func (w *Worker) updateMatch(ctx context.Context, f fixture) error {
     _, err := w.db.ExecContext(ctx, `
         UPDATE matches
         SET status     = $1,
             home_score = $2,
-            away_score = $3
-        WHERE external_id = $4
-    `, f.Status, f.HomeScore, f.AwayScore, f.ExternalID)
-    return err
+            away_score = $3,
+            minute     = $4
+        WHERE external_id = $5
+    `, f.Status, f.HomeScore, f.AwayScore, f.Minute, f.ExternalID)
+    if err != nil {
+        return err
+    }
+
+    // Salvar gols no banco
+    matchID, err := w.getMatchID(ctx, f.ExternalID)
+    if err != nil {
+        return fmt.Errorf("erro ao buscar id do jogo: %w", err)
+    }
+
+    // Deletar gols antigos deste match
+    _, err = w.db.ExecContext(ctx, `DELETE FROM goals WHERE match_id = $1`, matchID)
+    if err != nil {
+        return fmt.Errorf("erro ao deletar gols antigos: %w", err)
+    }
+
+    // Inserir novos gols
+    for _, g := range f.Goals {
+        _, err = w.db.ExecContext(ctx, `
+            INSERT INTO goals (match_id, player_name, minute, team)
+            VALUES ($1, $2, $3, $4)
+        `, matchID, g.PlayerName, g.Minute, g.Team)
+        if err != nil {
+            log.Printf("[worker] erro ao inserir gol: %v", err)
+            continue
+        }
+    }
+
+    return nil
 }
 
 func (w *Worker) populateBracketIfReady(ctx context.Context) error {

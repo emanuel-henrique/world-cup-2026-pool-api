@@ -42,7 +42,7 @@ func (r *postgresRepository) FindAll(ctx context.Context, limit, offset int) ([]
     }
     defer rows.Close()
 
-    var result []PlayerResponse
+    result := []PlayerResponse{}
     for rows.Next() {
         var p PlayerResponse
         err := rows.Scan(

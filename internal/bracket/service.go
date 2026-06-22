@@ -99,7 +99,7 @@ func (s *service) GetBracket(ctx context.Context) (BracketResponse, error) {
 		return BracketResponse{}, fmt.Errorf("erro ao iterar chaveamento: %w", err)
 	}
 
-	var rounds []BracketRound
+	rounds := []BracketRound{}
 	for _, stage := range roundOrder {
 		rounds = append(rounds, *roundMap[stage])
 	}

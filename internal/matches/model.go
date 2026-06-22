@@ -15,6 +15,8 @@ type Match struct {
     KickoffAt  time.Time `json:"kickoff_at"`
     Status     string    `json:"status"`
     CreatedAt  time.Time `json:"created_at"`
+    Goals      []Goal    `json:"goals"`
+    Minute     *int      `json:"minute"` // current minute for live matches
 }
 
 type Status string

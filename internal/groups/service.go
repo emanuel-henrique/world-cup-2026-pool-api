@@ -63,7 +63,7 @@ func (s *service) ListGroups(ctx context.Context) (ListGroupsResponse, error) {
         return ListGroupsResponse{}, fmt.Errorf("erro ao iterar grupos: %w", err)
     }
 
-    var groups []Group
+    groups := []Group{}
     for _, name := range groupOrder {
         groups = append(groups, *groupMap[name])
     }
@@ -89,7 +89,7 @@ func (s *service) GetGroup(ctx context.Context, name string) (GroupDetailRespons
     }
     defer rows.Close()
 
-    var standings []GroupStanding
+    standings := []GroupStanding{}
     for rows.Next() {
         var s GroupStanding
         err := rows.Scan(
@@ -131,7 +131,7 @@ func (s *service) GetGroup(ctx context.Context, name string) (GroupDetailRespons
     }
     defer mrows.Close()
 
-    var groupMatches []GroupMatch
+    groupMatches := []GroupMatch{}
     for mrows.Next() {
         var m GroupMatch
         err := mrows.Scan(

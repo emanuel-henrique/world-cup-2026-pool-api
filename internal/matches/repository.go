@@ -52,6 +52,7 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters, 
             m.group_name,
             m.kickoff_at,
             m.status,
+            m.minute,
             ht.id,   ht.name, COALESCE(ht.flag, ''),
             at.id,   at.name, COALESCE(at.flag, '')
         FROM matches m
@@ -71,6 +72,7 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters, 
     defer rows.Close()
 
     matches := []MatchResponse{}
+    matchIDs := []string{}
     for rows.Next() {
         var m MatchResponse
         var home, away TeamSummary
@@ -86,6 +88,7 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters, 
             &m.GroupName,
             &m.KickoffAt,
             &m.Status,
+            &m.Minute,
             &homeID, &homeName, &homeFlag,
             &awayID, &awayName, &awayFlag,
         )
@@ -103,10 +106,46 @@ func (r *postgresRepository) FindAll(ctx context.Context, filters MatchFilters, 
         }
 
         matches = append(matches, m)
+        matchIDs = append(matchIDs, m.ID)
     }
 
     if err := rows.Err(); err != nil {
         return nil, 0, fmt.Errorf("erro ao iterar jogos: %w", err)
+    }
+
+    // Buscar gols para todos os matches
+    if len(matchIDs) > 0 {
+        goalsQuery := `
+            SELECT match_id, player_name, minute, team
+            FROM goals
+            WHERE match_id = ANY($1)
+            ORDER BY minute ASC
+        `
+        goalRows, err := r.db.QueryContext(ctx, goalsQuery, matchIDs)
+        if err != nil {
+            return nil, 0, fmt.Errorf("erro ao buscar gols: %w", err)
+        }
+        defer goalRows.Close()
+
+        goalsByMatch := make(map[string][]Goal)
+        for goalRows.Next() {
+            var g Goal
+            var matchID string
+            err := goalRows.Scan(&matchID, &g.PlayerName, &g.Minute, &g.Team)
+            if err != nil {
+                return nil, 0, fmt.Errorf("erro ao ler gol: %w", err)
+            }
+            goalsByMatch[matchID] = append(goalsByMatch[matchID], g)
+        }
+
+        // Adicionar gols aos matches
+        for i := range matches {
+            if goals, ok := goalsByMatch[matches[i].ID]; ok {
+                matches[i].Goals = goals
+            } else {
+                matches[i].Goals = []Goal{}
+            }
+        }
     }
 
     return matches, total, nil
@@ -122,6 +161,7 @@ func (r *postgresRepository) FindByID(ctx context.Context, id string) (MatchResp
             m.group_name,
             m.kickoff_at,
             m.status,
+            m.minute,
             ht.id,   ht.name, COALESCE(ht.flag, ''),
             at.id,   at.name, COALESCE(at.flag, '')
         FROM matches m
@@ -144,6 +184,7 @@ func (r *postgresRepository) FindByID(ctx context.Context, id string) (MatchResp
         &m.GroupName,
         &m.KickoffAt,
         &m.Status,
+        &m.Minute,
         &homeID, &homeName, &homeFlag,
         &awayID, &awayName, &awayFlag,
     )
@@ -163,6 +204,29 @@ func (r *postgresRepository) FindByID(ctx context.Context, id string) (MatchResp
         m.AwayTeam = &away
     }
 
+    // Buscar gols para este match
+    goalsQuery := `
+        SELECT player_name, minute, team
+        FROM goals
+        WHERE match_id = $1
+        ORDER BY minute ASC
+    `
+    goalRows, err := r.db.QueryContext(ctx, goalsQuery, id)
+    if err == nil {
+        defer goalRows.Close()
+        var goals []Goal
+        for goalRows.Next() {
+            var g Goal
+            err := goalRows.Scan(&g.PlayerName, &g.Minute, &g.Team)
+            if err == nil {
+                goals = append(goals, g)
+            }
+        }
+        m.Goals = goals
+    } else {
+        m.Goals = []Goal{}
+    }
+
     return m, nil
 }
 
@@ -170,14 +234,15 @@ func (r *postgresRepository) Upsert(ctx context.Context, match Match) error {
     query := `
         INSERT INTO matches (
             id, external_id, home_team_id, away_team_id,
-            home_score, away_score, stage, group_name, kickoff_at, status
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            home_score, away_score, stage, group_name, kickoff_at, status, minute
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         ON CONFLICT (external_id) DO UPDATE SET
             home_team_id = EXCLUDED.home_team_id,
             away_team_id = EXCLUDED.away_team_id,
             home_score   = EXCLUDED.home_score,
             away_score   = EXCLUDED.away_score,
-            status       = EXCLUDED.status
+            status       = EXCLUDED.status,
+            minute       = EXCLUDED.minute
     `
 
     _, err := r.db.ExecContext(ctx, query,
@@ -191,6 +256,7 @@ func (r *postgresRepository) Upsert(ctx context.Context, match Match) error {
         match.GroupName,
         match.KickoffAt,
         match.Status,
+        match.Minute,
     )
     if err != nil {
         return fmt.Errorf("erro ao upsert jogo: %w", err)

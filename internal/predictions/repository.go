@@ -45,7 +45,7 @@ func (r *postgresRepository) FindByUser(ctx context.Context, userID string, limi
 	}
 	defer rows.Close()
 
-	var result []PredictionResponse
+	result := []PredictionResponse{}
 	for rows.Next() {
 		var p PredictionResponse
 		err := rows.Scan(&p.ID, &p.MatchID, &p.HomeScore, &p.AwayScore, &p.Points, &p.Scored, &p.UpdatedAt)

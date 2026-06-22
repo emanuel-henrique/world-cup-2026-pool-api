@@ -57,7 +57,7 @@ func (s *service) GetRanking(ctx context.Context, page int, limit int) (RankingR
 	}
 	defer rows.Close()
 
-	var entries []RankingEntry
+	entries := []RankingEntry{}
 	position := offset + 1
 
 	for rows.Next() {
